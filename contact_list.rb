@@ -38,9 +38,11 @@ class ContactList
     puts "*" * 32
   end
 
-  # Return a String with the contact's name and email on separate lines
+  # Returns a String with the contact's name and email on separate lines
   def self.contact_details(contact)
     "#{contact.name}\n#{contact.email}"
   end
 
 end
+
+ContactList.run

@@ -1,5 +1,4 @@
 require 'csv'
-require 'pry-byebug'
 # Represents a person in an address book.
 # The ContactList class will work with Contact objects instead of interacting with the CSV file directly
 class Contact
@@ -25,6 +24,7 @@ class Contact
   end
 
   # Returns true if the contact's name and/or email matches search_term, false otherwise
+  # @param term [String] The search term used to match the contact
   def matches?(term)
     term = /#{term.downcase}/
     !(term =~ self.name.downcase).nil? || !(term =~ self.email.downcase).nil?
