@@ -73,7 +73,5 @@ class Contact
       @@contacts.each { |contact| csv_file << [contact.id, contact.name, contact.email] }
       csv_file.close
     end
-
   end
-
 end
