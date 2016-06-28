@@ -44,6 +44,7 @@ class ContactList
   end
 
   # Returns a String with the contact's name and email on separate lines
+  # @param contact [Contact] The contact who's name and email is being formatted
   def self.contact_details(contact)
     "#{contact.name}\n#{contact.email}"
   end

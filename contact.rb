@@ -28,8 +28,8 @@ class Contact
   # Returns true if the contact's name and/or email matches search_term, false otherwise
   # @param term [String] The search term used to match the contact
   def matches?(term)
-    term = /#{term.downcase}/
-    !(term =~ self.name.downcase).nil? || !(term =~ self.email.downcase).nil?
+    term = /#{Regexp.escape(term)}/i
+    !((term =~ self.name).nil? && (term =~ self.email).nil?)
   end
 
   # Provides functionality for managing contacts in the csv file.
