@@ -15,8 +15,12 @@ class ContactList
       name = STDIN.gets.chomp
       puts "Enter the new contact's email: "
       email = STDIN.gets.chomp
-      contact = Contact.create(name, email)
-      puts "Added #{contact.name} with ID #{contact.id} successfully!"
+      if contact_exists?(contacts, email)
+        puts "Not creating new contact because a contact with email #{email} already exists!"
+      else
+        contact = Contact.create(name, email)
+        puts "Added #{contact.name} with ID #{contact.id} successfully!"
+      end
     when "show"
       return if ARGV[1].nil?
       contact = Contact.find(ARGV[1].to_i)
@@ -43,6 +47,12 @@ class ContactList
     "#{contact.name}\n#{contact.email}"
   end
 
+  # Returns true if the contact with "email" already exists, false otherwise
+  # @param contacts [Array<Contact>] The list of contacts
+  # @param email [String] The email used to check if a contact already exists
+  def self.contact_exists?(contacts, email)
+    not ((contacts.detect { |contact| contact.email == email }).nil?)
+  end
 end
 
 ContactList.run

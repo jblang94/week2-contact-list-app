@@ -5,7 +5,9 @@ class Contact
 
   @@contacts_count = 1
   @@contacts = []
+
   CSV_FILE_NAME = 'contacts.csv'
+
   attr_reader :name, :email, :id
   
   # Creates a new contact object
@@ -64,8 +66,6 @@ class Contact
     def search(term)
       @@contacts.select { |contact| contact.matches?(term) }
     end
-
-    private
 
     # Update the contacts.csv file
     def update_csv_file
