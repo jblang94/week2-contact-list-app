@@ -38,7 +38,7 @@ class Contact
     # Opens 'contacts.csv' and creates a Contact object for each line in the file (aka each contact).
     # @return [Array<Contact>] Array of Contact objects
     def all
-      return unless File.file?(CSV_FILE_NAME)
+      return [] unless File.file?(CSV_FILE_NAME)
       @@contacts = CSV.read(CSV_FILE_NAME)
       @@contacts.map! { |contact| Contact.new(contact[1], contact[2]) }
     end
