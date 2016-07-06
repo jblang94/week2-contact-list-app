@@ -1,23 +1,17 @@
 require 'csv'
+require_relative 'base'
 # Represents a person in an address book.
 # The ContactList class will work with Contact objects instead of interacting with the CSV file directly
 class Contact
 
-  @@contacts_count = 1
-  @@contacts = []
+  DATABASE_TABLE_NAME = 'contacts'
 
-  CSV_FILE_NAME = 'contacts.csv'
+  attr_accessor :name, :email, :id
 
-  attr_reader :name, :email, :id
-  
-  # Creates a new contact object
-  # @param name [String] The contact's name
-  # @param email [String] The contact's email address
-  def initialize(name, email)
-    @name = name.strip
-    @email = email.strip
-    @id = @@contacts_count
-    @@contacts_count += 1
+  def initialize(contact_details)
+    @name = contact_details['name']
+    @email = contact_details['email']
+    @id = contact_details['id']
   end
 
   # Returns a formatted String of the contact's name and email
@@ -25,53 +19,77 @@ class Contact
     "#{self.id}:\t#{self.name}\t(#{self.email})"
   end
 
-  # Returns true if the contact's name and/or email matches search_term, false otherwise
-  # @param term [String] The search term used to match the contact
-  def matches?(term)
-    term = /#{Regexp.escape(term)}/i
-    !((term =~ self.name).nil? && (term =~ self.email).nil?)
+  # Saves a new contact or updates an existing contact
+  def save
+    if contact_in_database?
+      Base.connection.exec_params("UPDATE #{DATABASE_TABLE_NAME}
+      SET name = $1, email = $2 WHERE id = $3::int;", [self.name, self.email, self.id])
+    else
+      contact_database_id = Base.connection.exec_params("INSERT INTO #{DATABASE_TABLE_NAME} (name, email)
+      VALUES ($1, $2) RETURNING id;", [self.name, self.email])
+      self.id = contact_database_id[0]['id']
+    end
+  end
+
+  # Removes a contact from the database
+  def destroy
+    return false if !contact_in_database?
+    Base.connection.exec_params("DELETE FROM #{DATABASE_TABLE_NAME} WHERE id = $1::int", [self.id])
+    true
   end
 
   # Provides functionality for managing contacts in the csv file.
   class << self
 
-    # Opens 'contacts.csv' and creates a Contact object for each line in the file (aka each contact).
+    # Connects to the database and retrieves all records from the contacts table
     # @return [Array<Contact>] Array of Contact objects
     def all
-      return [] unless File.file?(CSV_FILE_NAME)
-      @@contacts = CSV.read(CSV_FILE_NAME)
-      @@contacts.map! { |contact| Contact.new(contact[1], contact[2]) }
+      contact_records = Base.connection.exec("SELECT * FROM #{DATABASE_TABLE_NAME} ORDER BY id;")
+      contact_records.map { |contact_record| Contact.new(contact_record) }
     end
 
     # Creates a new contact, adding it to the csv file, returning the new contact.
     # @param name [String] the new contact's name
     # @param email [String] the contact's email
+    # @return Contact the newly created contact
     def create(name, email)
-      contact = Contact.new(name, email)
-      @@contacts << contact
-      update_csv_file
+      contact = Contact.new({'name' => name, 'email' => email})
+      contact.save
       contact
     end
-    
-    # Find the Contact in the 'contacts.csv' file with the matching id.
+
+    # Find the Contact with the matching id.
     # @param id [Integer] the contact id
-    # @return [Contact, nil] the contact with the specified id. If no contact has the id, returns nil.
+    # @return [Contact, nil] the contact with the specified id. If the contact is not found, returns nil.
     def find(id)
-     @@contacts.detect { |contact| contact.id == id }
+      contact_record = Base.connection.exec_params("SELECT * FROM #{DATABASE_TABLE_NAME} WHERE id = $1;", [id])
+      return nil if empty_query_result?(contact_record)
+      Contact.new(contact_record[0])
     end
-    
+
     # Search for contacts by either name or email.
     # @param term [String] the name fragment or email fragment to search for
     # @return [Array<Contact>] Array of Contact objects.
     def search(term)
-      @@contacts.select { |contact| contact.matches?(term) }
+      contact_records = Base.connection.exec("SELECT * FROM #{DATABASE_TABLE_NAME} WHERE name LIKE '%#{term}%';")
+      return [] if empty_query_result?(contact_records)
+      contact_records.map { |contact_record| Contact.new(contact_record) }
     end
 
-    # Update the contacts.csv file
-    def update_csv_file
-      csv_file = CSV.open(CSV_FILE_NAME, "w")
-      @@contacts.each { |contact| csv_file << [contact.id, contact.name, contact.email] }
-      csv_file.close
+    def empty_query_result?(query_result)
+      query_result.num_tuples == 0
     end
+
+    def contact_not_found?(contact)
+      contact.nil?
+    end
+
   end
+
+  private
+
+  def contact_in_database?
+    self.id != nil
+  end
+
 end
